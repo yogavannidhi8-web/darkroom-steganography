@@ -3,6 +3,8 @@
 
 **Academic Capstone Project — B.Tech Implementation**
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/yogavannidhi8-web/darkroom-steganography)
+
 ---
 
 ## 1. Project Overview
