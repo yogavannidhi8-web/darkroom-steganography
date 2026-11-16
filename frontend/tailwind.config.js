@@ -11,6 +11,7 @@ export default {
         'paper-raised': 'var(--paper-raised)',
         ink: 'var(--ink)',
         'ink-soft': 'var(--ink-soft)',
+        'ink-muted': 'var(--ink-muted)',
         line: 'var(--line)',
         darkroom: 'var(--darkroom)',
         signal: 'var(--signal)',

@@ -1,54 +1,98 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useState } from 'react';
-import { Menu, X, Shield } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Menu, X, Shield, Activity } from 'lucide-react';
+import { api } from '../../services/api';
 
 const navLinks = [
-  { to: '/', label: 'Overview', shortLabel: '01' },
-  { to: '/encode', label: 'Encode', shortLabel: '02' },
-  { to: '/decode', label: 'Decode', shortLabel: '03' },
-  { to: '/analysis', label: 'Analysis', shortLabel: '04' },
-  { to: '/benchmark', label: 'Benchmark', shortLabel: '05' },
-  { to: '/methodology', label: 'Methodology', shortLabel: '06' },
+  { to: '/', label: 'Overview', code: '01' },
+  { to: '/encode', label: 'Encode', code: '02' },
+  { to: '/decode', label: 'Decode & Verify', code: '03' },
+  { to: '/analysis', label: 'Analysis', code: '04' },
+  { to: '/benchmark', label: 'Benchmark', code: '05' },
+  { to: '/methodology', label: 'Methodology', code: '06' },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const checkHealth = async () => {
+      try {
+        await api.health();
+        if (mounted) setBackendOnline(true);
+      } catch {
+        if (mounted) setBackendOnline(false);
+      }
+    };
+    checkHealth();
+    const interval = setInterval(checkHealth, 20000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--paper)' }}>
-      {/* Top header */}
-      <header
-        className="sticky top-0 z-50 border-b"
-        style={{ borderColor: 'var(--line)', background: 'var(--paper)' }}
+      {/* Precision Top Bar */}
+      <div
+        className="border-b text-[10px] font-mono tracking-widest uppercase px-4 md:px-6 py-1 flex items-center justify-between"
+        style={{ borderColor: 'var(--line)', background: 'var(--paper-raised)', color: 'var(--ink-muted)' }}
       >
-        <div className="max-w-screen-xl mx-auto px-4 md:px-6 h-12 flex items-center justify-between">
-          {/* Wordmark */}
-          <Link to="/" className="flex items-center gap-2 group" aria-label="DARKROOM home">
+        <div className="flex items-center gap-4">
+          <span>SYS: DARKROOM / LAB 1.0</span>
+          <span className="hidden sm:inline">·</span>
+          <span className="hidden sm:inline">ALGO: ADAPTIVE 6-BIT SPATIAL</span>
+          <span className="hidden md:inline">·</span>
+          <span className="hidden md:inline">CRYPTO: AES-256-GCM / ARGON2ID</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className="inline-block w-2 h-2 rounded-full"
+            style={{
+              background: backendOnline === true ? 'var(--success)' : backendOnline === false ? 'var(--signal)' : 'var(--warning)',
+            }}
+          />
+          <span style={{ color: backendOnline === true ? 'var(--success)' : 'var(--ink-muted)' }}>
+            {backendOnline === true ? 'ENGINE ONLINE' : backendOnline === false ? 'ENGINE OFFLINE' : 'CONNECTING...'}
+          </span>
+        </div>
+      </div>
+
+      {/* Main Navigation Header */}
+      <header
+        className="sticky top-0 z-50 border-b backdrop-blur-sm"
+        style={{ borderColor: 'var(--line)', background: 'rgba(242, 240, 232, 0.95)' }}
+      >
+        <div className="max-w-screen-xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
+          {/* Identity */}
+          <Link to="/" className="flex items-center gap-2.5 group" aria-label="DARKROOM home">
             <div
-              className="w-5 h-5 flex items-center justify-center border"
-              style={{ borderColor: 'var(--ink)', borderRadius: 'var(--radius-sm)' }}
+              className="w-6 h-6 flex items-center justify-center border transition-colors group-hover:border-signal"
+              style={{ borderColor: 'var(--ink)', borderRadius: 'var(--radius-xs)', background: 'var(--paper-raised)' }}
             >
-              <Shield size={11} strokeWidth={2} style={{ color: 'var(--ink)' }} />
+              <Shield size={12} strokeWidth={2} style={{ color: 'var(--ink)' }} />
             </div>
-            <span
-              className="font-mono text-xs font-medium tracking-widest uppercase"
-              style={{ color: 'var(--ink)' }}
-            >
-              DARKROOM
-            </span>
-            <span className="font-mono text-xs" style={{ color: 'var(--ink-soft)' }}>
-              /
-            </span>
-            <span
-              className="font-mono text-xs tracking-widest uppercase hidden sm:inline"
-              style={{ color: 'var(--ink-soft)' }}
-            >
-              IMAGE SECURITY LAB
-            </span>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5 leading-none">
+                <span className="font-mono text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--ink)' }}>
+                  DARKROOM
+                </span>
+                <span className="font-mono text-xs text-ink-muted">/</span>
+                <span className="font-mono text-xs tracking-wider uppercase text-ink-soft hidden sm:inline">
+                  IMAGE SECURITY LAB
+                </span>
+              </div>
+              <span className="text-[9px] font-mono tracking-wider text-ink-muted uppercase mt-0.5">
+                Adaptive Steganography Workstation
+              </span>
+            </div>
           </Link>
 
-          {/* Desktop nav */}
+          {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1" aria-label="Main navigation">
             {navLinks.map((link) => {
               const active = location.pathname === link.to;
@@ -56,34 +100,41 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   key={link.to}
                   to={link.to}
-                  className="px-3 py-1.5 font-sans text-xs font-medium transition-colors"
+                  className="px-3.5 py-1.5 font-sans text-xs tracking-wide transition-all relative flex items-center gap-1.5"
                   style={{
                     color: active ? 'var(--ink)' : 'var(--ink-soft)',
-                    borderBottom: active ? '1px solid var(--ink)' : '1px solid transparent',
+                    fontWeight: active ? 600 : 400,
                   }}
                   aria-current={active ? 'page' : undefined}
                 >
-                  {link.label}
+                  <span className="font-mono text-[10px] text-ink-muted">{link.code}</span>
+                  <span>{link.label}</span>
+                  {active && (
+                    <span
+                      className="absolute bottom-[-13px] left-3.5 right-3.5 h-[2px]"
+                      style={{ background: 'var(--ink)' }}
+                    />
+                  )}
                 </Link>
               );
             })}
           </nav>
 
-          {/* Status line */}
-          <div className="hidden lg:flex items-center gap-2">
-            <span className="font-mono text-xs" style={{ color: 'var(--ink-soft)' }}>
-              LOCAL PROCESSING / SECURE WORKFLOW
-            </span>
+          {/* Action indicator */}
+          <div className="hidden lg:flex items-center gap-3">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 border text-xs font-mono" style={{ borderColor: 'var(--line)', background: 'var(--paper-raised)', borderRadius: 'var(--radius-xs)' }}>
+              <Activity size={11} style={{ color: 'var(--signal)' }} />
+              <span className="text-[10px] text-ink-soft uppercase tracking-wider">PORT 8000 · REST</span>
+            </div>
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile menu toggle */}
           <button
-            className="md:hidden p-2"
+            className="md:hidden p-2 text-ink hover:text-signal transition-colors"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-            style={{ color: 'var(--ink)' }}
           >
-            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
 
@@ -102,18 +153,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     key={link.to}
                     to={link.to}
                     onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-3 py-3 border-b font-sans text-sm"
+                    className="flex items-center justify-between py-3 border-b font-sans text-sm"
                     style={{
                       borderColor: 'var(--line)',
                       color: active ? 'var(--ink)' : 'var(--ink-soft)',
-                      fontWeight: active ? 500 : 400,
+                      fontWeight: active ? 600 : 400,
                     }}
                     aria-current={active ? 'page' : undefined}
                   >
-                    <span className="font-mono text-xs" style={{ color: 'var(--ink-soft)', minWidth: '20px' }}>
-                      {link.shortLabel}
-                    </span>
-                    {link.label}
+                    <span>{link.label}</span>
+                    <span className="font-mono text-xs text-ink-muted">{link.code}</span>
                   </Link>
                 );
               })}
@@ -122,20 +171,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </header>
 
-      {/* Main container */}
-      <main className="flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 py-8">
+      {/* Main Work Surface */}
+      <main className="flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 py-8 md:py-10">
         {children}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t" style={{ borderColor: 'var(--line)' }}>
-        <div className="max-w-screen-xl mx-auto px-4 md:px-6 h-10 flex items-center justify-between">
-          <span className="font-mono text-xs" style={{ color: 'var(--ink-soft)' }}>
-            DARKROOM / Image Security Lab — Capstone Project
-          </span>
-          <span className="font-mono text-xs" style={{ color: 'var(--ink-soft)' }}>
-            AES-256-GCM · Argon2id · Adaptive LSB
-          </span>
+      {/* Technical Footer */}
+      <footer className="border-t mt-auto" style={{ borderColor: 'var(--line)', background: 'var(--paper-raised)' }}>
+        <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono" style={{ color: 'var(--ink-muted)' }}>
+          <div>
+            DARKROOM / Image Security Lab · Academic Capstone Specification
+          </div>
+          <div className="flex items-center gap-4">
+            <span>SHA-256 INTEGRITY</span>
+            <span>·</span>
+            <span>CHACHA20 SHUFFLE</span>
+            <span>·</span>
+            <span>SSIM &gt; 0.999</span>
+          </div>
         </div>
       </footer>
     </div>
