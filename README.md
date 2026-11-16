@@ -27,86 +27,152 @@
 
 ### Frontend
 - **Framework:** React 18, TypeScript 5.6, Vite 5.4
-- **Styling & Tokens:** Tailwind CSS, custom analog darkroom editorial tokens
+- **Styling & Tokens:** Tailwind CSS, minimal darkroom editorial design system
 - **UI Components:** Radix UI primitives, Lucide React icons
 - **Visualization:** Recharts, HTML5 Canvas, JSZip
 - **Validation:** React Hook Form, Zod
 
 ---
 
-## 3. System Architecture
+## 3. Production Architecture
 
 ```
-User Browser
-    │
-    ▼
-React 18 / TypeScript SPA (Vite)
-    │  (HTTP / Multipart REST)
-    ▼
-FastAPI Backend (/api/v1)
-    ├── Core Cryptography: Argon2id KDF -> HKDF Subkeys -> AES-256-GCM -> SHA-256
-    ├── Steganography Engine: Stable 6-Bit Map -> Sobel/Variance/Canny -> Permute -> LSB Embed
-    └── Quality Engine: MSE, PSNR, SSIM, Shannon Entropy, Difference Heatmaps
+Internet (HTTPS)
+      │
+      ├──▶ [Render / Cloud Static CDN]
+      │     Frontend SPA (React 18 + Vite)
+      │     - Security Headers (X-Content-Type-Options, X-Frame-Options)
+      │     - SPA Client-Side Fallback (/index.html)
+      │     │
+      │     ▼ (HTTPS API Calls)
+      └──▶ [Render / Container Web Service]
+            Backend REST API (FastAPI + Uvicorn)
+            ├── Production Security Headers & Upload Limiting
+            ├── CORS restricted to deployed frontend domain
+            ├── Core Cryptography: Argon2id KDF -> HKDF Subkeys -> AES-256-GCM -> SHA-256
+            ├── Steganography Engine: Stable 6-Bit Map -> Sobel/Variance/Canny -> Permute -> LSB Embed
+            └── Quality Engine: MSE, PSNR, SSIM, Shannon Entropy, Difference Heatmaps
 ```
 
 ---
 
-## 4. Quick Start: Local Development
+## 4. Production Security Hardening
 
-### Prerequisites
-- Python 3.11+ (Python 3.12 recommended)
-- Node.js 18+ (Node 20+ recommended)
-- npm 9+
+- **Zero External AI / Third-Party APIs:** Operates 100% deterministically using local cryptographic libraries.
+- **Strict CORS Policy:** Restricted strictly to configured origins via `ALLOWED_ORIGINS` environment variable.
+- **Defense in Depth:**
+  - Header CRC32 validation for fast corruption detection.
+  - AES-256-GCM Galois/Counter Mode authenticated encryption (AAD header-bound).
+  - SHA-256 payload digest verified via constant-time comparison (`hmac.compare_digest`).
+  - Strict filename sanitization (`os.path.basename`) preventing path traversal.
+  - Request body size limits (20 MB default) and benchmark input clamping.
+- **Production HTTP Security Headers:**
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: DENY` (Backend) / `SAMEORIGIN` (Frontend)
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Permissions-Policy: geolocation=(), camera=(), microphone=()`
+  - `Cache-Control: no-store, no-cache, must-revalidate` (API responses)
+- **Container Hardening:** Runs as non-root user `appuser` in production Docker containers.
 
-### Option A: Using the Automated Startup Script
+---
 
-#### Windows (PowerShell):
-```powershell
-.\scripts\dev.ps1
-```
+## 5. Environment Variables Reference
 
-#### macOS / Linux (Bash):
+### Backend (`backend/.env`)
+
+| Variable | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `APP_ENV` | string | `development` | Set to `production` in live environments |
+| `ALLOWED_ORIGINS` | string | `http://localhost:5173,...` | Comma-separated list of allowed frontend origins |
+| `MAX_UPLOAD_MB` | int | `20` | Maximum upload size in megabytes |
+| `MAX_IMAGE_PIXELS` | int | `8000000` | Maximum allowed pixels (8 Megapixels) |
+| `PORT` | int | `8000` | Port for Uvicorn server |
+
+### Frontend (`frontend/.env`)
+
+| Variable | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `VITE_API_BASE_URL` | string | *(empty)* | Deployed backend HTTPS URL (e.g. `https://darkroom-backend.onrender.com`). In local dev, leave empty to use Vite proxy. |
+
+---
+
+## 6. Deployment Guides
+
+### Option A: Render Blueprint Deployment (`render.yaml`)
+
+The included `render.yaml` sets up both services with automated cross-referencing:
+
+1. Push this repository to GitHub.
+2. In the [Render Dashboard](https://dashboard.render.com), click **New + > Blueprint**.
+3. Select your repository and click **Apply**.
+4. Render automatically configures:
+   - `darkroom-backend` (Python Web Service) on free tier.
+   - `darkroom-frontend` (Static Site) pointing to the backend API URL.
+
+### Option B: Docker / Container Deployment
+
+#### Local Multi-Container Run:
 ```bash
-chmod +x scripts/dev.sh
-./scripts/dev.sh
+docker compose up --build
+```
+- Frontend: `http://localhost:3000`
+- Backend API: `http://localhost:8000`
+- API Docs: `http://localhost:8000/api/docs`
+
+#### Build Backend Image Standalone:
+```bash
+docker build -t darkroom-backend ./backend
+docker run -p 8000:8000 -e APP_ENV=production darkroom-backend
+```
+
+#### Build Frontend Image Standalone:
+```bash
+docker build --build-arg VITE_API_BASE_URL=https://your-backend.com -t darkroom-frontend ./frontend
+docker run -p 80:80 darkroom-frontend
 ```
 
 ---
 
-### Option B: Manual Startup
+## 7. Local Development
 
-#### 1. Start the Backend
+### 1. Backend Setup
 ```powershell
 cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1   # On Unix: source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
-Backend API will be live at: `http://localhost:8000` (Docs at: `http://localhost:8000/api/docs`).
+- API Docs live at `http://localhost:8000/api/docs`.
+- Health check: `http://localhost:8000/api/v1/health`.
 
-#### 2. Start the Frontend
-In a separate terminal window:
+### 2. Frontend Setup
 ```powershell
 cd frontend
 npm install
-npm run dev
+npm run dev -- --host 0.0.0.0 --port 5173
 ```
-Frontend application will be live at: `http://localhost:5173`.
+- Application live at `http://localhost:5173`.
 
 ---
 
-## 5. Running Tests
+## 8. Automated Testing & Quality Audit
 
-Run the complete backend test suite:
+Run backend unit & security tests:
 ```powershell
 cd backend
-.\.venv\Scripts\Activate.ps1
 pytest tests/ -v
 ```
-All 19 automated tests cover cryptographic correctness, wrong password rejection, tampered ciphertext detection, stable feature map invariance, and image quality metrics.
+**Test Coverage (19/19 Tests Passed):**
+- Key derivation stability and salt/passphrase sensitivity.
+- HKDF key separation between encryption and permutation subkeys.
+- AES-256-GCM AEAD encryption and tampering rejection.
+- Wrong password atomic rejection.
+- Upper 6-bit feature analysis map invariance ($I_{stego} \ \& \ 0\text{xFC} \equiv I_{cover} \ \& \ 0\text{xFC}$).
+- End-to-end text and binary file round-trip recovery.
+- Quality metrics mathematical accuracy (MSE, PSNR, SSIM, Entropy).
 
-To verify the frontend production build:
+Verify frontend production build:
 ```powershell
 cd frontend
 npm run build
@@ -114,65 +180,19 @@ npm run build
 
 ---
 
-## 6. Running Benchmarks
+## 9. Troubleshooting
 
-Generate synthetic carriers and run the 72-trial benchmark suite:
-```powershell
-python scripts/generate_samples.py
-python experiments/run_benchmarks.py
-```
-Results are saved to:
-- `experiments/results/benchmark_results.json`
-- `experiments/results/benchmark_results.csv`
-- `experiments/results/benchmark_report.md`
-
-### Empirical Results Summary:
-- **PSNR:** Consistently $> 62.8\text{ dB}$ across all test cases (up to $75.5\text{ dB}$).
-- **SSIM:** $\ge 0.9994$ (virtually identical to the human eye).
-- **Integrity Pass Rate:** $100\%$ ($72/72$ trials passed round-trip verification).
+- **Frontend cannot reach backend:**
+  Verify that `VITE_API_BASE_URL` in the frontend matches the deployed backend HTTPS address without trailing slashes. In local dev, leave `VITE_API_BASE_URL` empty to let the Vite proxy forward `/api` requests to `http://127.0.0.1:8000`.
+- **CORS Error in Browser:**
+  Ensure the frontend domain (e.g. `https://darkroom-frontend.onrender.com`) is included in the backend's `ALLOWED_ORIGINS` environment variable.
+- **Render Free Tier Cold Start:**
+  On Render free tier, the backend spins down after 15 minutes of inactivity. When the frontend is opened, the top status indicator may show `Connecting...` for 30–50 seconds while the backend wakes up. Once awake, the indicator switches to `Ready`.
+- **413 Payload Too Large:**
+  The server enforces a maximum upload size of 20 MB. Ensure carrier images and secret files do not exceed this limit.
 
 ---
 
-## 7. Deployment Configuration
-
-### Render Blueprint Deployment (`render.yaml`)
-The project includes a ready-to-deploy Render Blueprint configuring:
-- `darkroom-backend`: FastAPI Python Web Service on port 8000.
-- `darkroom-frontend`: Vite React Static Site with SPA fallback routing.
-
-To deploy on Render:
-1. Push this repository to GitHub.
-2. In the Render Dashboard, choose **New > Blueprint**.
-3. Select this repository and click **Apply**.
-
-### Docker Compose
-Run both backend and frontend in Docker:
-```bash
-docker compose up --build
-```
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8000`
-
----
-
-## 8. Documentation Directory
-
-Detailed academic documentation is available in `docs/`:
-- [`problem_statement.md`](docs/problem_statement.md): Mathematical context and steganography challenges.
-- [`objectives_and_scope.md`](docs/objectives_and_scope.md): Primary goals, bounds, and requirements.
-- [`system_architecture.md`](docs/system_architecture.md): Dataflow and Mermaid diagrams.
-- [`algorithm_and_mathematics.md`](docs/algorithm_and_mathematics.md): Feature extraction and bit allocation formulas.
-- [`cryptographic_design.md`](docs/cryptographic_design.md): KDF, AES-GCM, and AAD construction.
-- [`adaptive_embedding_method.md`](docs/adaptive_embedding_method.md): Slot allocation and ChaCha20 permutation.
-- [`api_reference.md`](docs/api_reference.md): Endpoints, request schemas, and responses.
-- [`testing_and_validation.md`](docs/testing_and_validation.md): Unit tests and security validation.
-- [`experiment_protocol.md`](docs/experiment_protocol.md): Benchmark results across synthetic carriers.
-- [`limitations_and_future_work.md`](docs/limitations_and_future_work.md): Honest technical limitations and roadmap.
-- [`viva_preparation.md`](docs/viva_preparation.md): Q&A guide for capstone viva defense.
-- [`references.md`](docs/references.md): IEEE, NIST, and IETF academic citations.
-
----
-
-## 9. Academic Contribution Statement
+## 10. Academic Contribution Statement
 
 > *This project implements an integrated adaptive image steganography framework combining content-aware spatial embedding, password-derived authenticated encryption, integrity verification and quantitative image-quality evaluation, with experimental comparison against simpler LSB baselines.*

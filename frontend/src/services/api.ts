@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE = RAW_API_BASE.replace(/\/+$/, '');
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {

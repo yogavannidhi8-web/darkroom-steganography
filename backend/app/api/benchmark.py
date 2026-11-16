@@ -24,11 +24,17 @@ async def benchmark_endpoint(
         raise HTTPException(422, str(e))
     
     try:
-        payload_sizes = [int(s) for s in json.loads(payload_sizes_json)]
+        raw_sizes = [int(s) for s in json.loads(payload_sizes_json)]
+        payload_sizes = [s for s in raw_sizes if 0 < s <= 50_000][:5]
+        if not payload_sizes:
+            payload_sizes = [128, 512, 1024]
     except Exception:
         payload_sizes = [128, 512, 1024]
     
-    method_list = [m.strip() for m in methods.split(",")]
+    allowed_methods = {"adaptive", "sequential", "permuted"}
+    method_list = [m.strip() for m in methods.split(",") if m.strip() in allowed_methods][:3]
+    if not method_list:
+        method_list = ["adaptive"]
     
     results = []
     

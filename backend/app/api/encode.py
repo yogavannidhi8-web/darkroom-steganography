@@ -1,8 +1,9 @@
+import os
+import logging
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import Response
 from app.services.encode_service import encode
 from app.stego.image_io import MAX_FILE_SIZE_BYTES
-import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -32,7 +33,8 @@ async def encode_endpoint(
         if file_payload is None:
             raise HTTPException(422, "File payload is required")
         payload_data = await file_payload.read()
-        filename = file_payload.filename or "file.bin"
+        raw_name = file_payload.filename or "file.bin"
+        filename = os.path.basename(raw_name).strip().lstrip(".") or "file.bin"
         if len(payload_data) > 10 * 1024 * 1024:
             raise HTTPException(413, "Secret file too large (max 10 MB)")
     else:

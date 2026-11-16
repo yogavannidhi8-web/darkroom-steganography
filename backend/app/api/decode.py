@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import Response
 from app.services.decode_service import decode
 from app.stego.image_io import MAX_FILE_SIZE_BYTES
-import io, json, zipfile, logging
+import os, io, json, zipfile, logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -41,8 +41,9 @@ async def decode_endpoint(
     # Package result
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
-        # Safe filename
-        safe_name = filename if filename else ("recovered_message.txt" if payload_type == "text" else "recovered_file.bin")
+        # Safe sanitized filename
+        base = os.path.basename(filename).strip().lstrip(".") if filename else ""
+        safe_name = base if base else ("recovered_message.txt" if payload_type == "text" else "recovered_file.bin")
         zf.writestr(safe_name, payload_bytes)
         zf.writestr("verification.json", json.dumps(verification, indent=2))
     
