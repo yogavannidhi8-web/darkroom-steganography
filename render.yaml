@@ -1,0 +1,43 @@
+services:
+  # Backend FastAPI Web Service
+  - type: web
+    name: darkroom-backend
+    env: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: ALLOWED_ORIGINS
+        fromService:
+          type: web
+          name: darkroom-frontend
+          property: url
+      - key: MAX_UPLOAD_MB
+        value: "20"
+      - key: MAX_IMAGE_PIXELS
+        value: "8000000"
+
+  # Frontend Vite Static Site
+  - type: web
+    name: darkroom-frontend
+    env: static
+    region: oregon
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: darkroom-backend
+          property: url
