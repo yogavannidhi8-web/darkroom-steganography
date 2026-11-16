@@ -54,5 +54,7 @@ desktop.ini
 temp/
 tmp/
 *.zip
+.vercel
+frontend/.vercel
 experiments/results/unpacked_*
 experiments/results/test_*
