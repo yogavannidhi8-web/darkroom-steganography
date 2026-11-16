@@ -13,20 +13,16 @@ services:
       - key: APP_ENV
         value: production
       - key: ALLOWED_ORIGINS
-        fromService:
-          type: web
-          name: darkroom-frontend
-          property: url
+        value: https://darkroom-frontend.onrender.com,http://localhost:5173,http://localhost:3000
       - key: MAX_UPLOAD_MB
         value: "20"
       - key: MAX_IMAGE_PIXELS
         value: "8000000"
 
-  # Frontend Vite Static Site
+  # Frontend Vite Static Site (Global CDN - no region)
   - type: web
     name: darkroom-frontend
     env: static
-    region: oregon
     plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
@@ -37,7 +33,4 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_BASE_URL
-        fromService:
-          type: web
-          name: darkroom-backend
-          property: url
+        value: https://darkroom-backend.onrender.com
