@@ -27,7 +27,7 @@ const REFERENCE_BENCHMARK_DATA = [
 ];
 
 export function BenchmarkPage() {
-  const [activeTab, setActiveTab] = useState<'live' | 'reference'>('reference');
+  const [activeTab, setActiveTab] = useState<'reference' | 'live'>('reference');
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [selectedSizes, setSelectedSizes] = useState<number[]>([128, 512, 1024, 2048]);
   const [selectedMethods, setSelectedMethods] = useState<string[]>(['adaptive', 'permuted', 'sequential']);
@@ -82,7 +82,7 @@ export function BenchmarkPage() {
 
     canvas.toBlob((blob) => {
       if (blob) {
-        const file = new File([blob], `synthetic_${type}_512x512.png`, { type: 'image/png' });
+        const file = new File([blob], `sample_${type}_512x512.png`, { type: 'image/png' });
         setCoverFile(file);
         setResults(null);
       }
@@ -90,7 +90,7 @@ export function BenchmarkPage() {
   };
 
   const runBenchmark = async () => {
-    if (!coverFile) { setError('Select or generate a carrier image first'); return; }
+    if (!coverFile) { setError('Select or generate an image first'); return; }
     if (selectedSizes.length === 0) { setError('Select at least one payload size'); return; }
     if (selectedMethods.length === 0) { setError('Select at least one method'); return; }
 
@@ -100,7 +100,7 @@ export function BenchmarkPage() {
       const r = await api.benchmark({ coverFile, payloadSizes: selectedSizes, methods: selectedMethods });
       setResults(r.results);
     } catch (e: any) {
-      setError(e.message || 'Benchmark execution failed');
+      setError(e.message || 'Benchmark run failed');
     } finally {
       setLoading(false);
     }
@@ -127,7 +127,6 @@ export function BenchmarkPage() {
     URL.revokeObjectURL(url);
   };
 
-  // Convert live results into chart format if available
   const liveChartData = results ? selectedSizes.map(size => {
     const entry: any = { payload: `${size}B`, bytes: size };
     results.filter(r => r.payload_bytes === size).forEach(r => {
@@ -138,43 +137,40 @@ export function BenchmarkPage() {
   }) : null;
 
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-5xl">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-3">
-          <span className="section-index">05</span>
-          <span className="status-stamp status-stamp-neutral">BENCHMARK EVALUATION</span>
-        </div>
-        <h1 className="font-display text-3xl mb-2">Empirical Method Comparison</h1>
-        <p className="font-sans text-sm" style={{ color: 'var(--ink-soft)' }}>
-          Systematic performance evaluation across payload sizes and embedding algorithms.
-          Measures Peak Signal-to-Noise Ratio (PSNR), Structural Similarity (SSIM), Shannon entropy delta, and execution latency.
+        <h1 className="font-display text-3xl sm:text-4xl mb-2 text-ink font-normal">
+          Algorithm Comparison
+        </h1>
+        <p className="font-sans text-sm text-ink-soft leading-relaxed">
+          Compare embedding methods across various payload sizes. Evaluates fidelity (PSNR, SSIM) and round-trip integrity.
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b pb-2" style={{ borderColor: 'var(--line)' }}>
+      <div className="flex gap-2 mb-6 border-b pb-2 border-line">
         <button
           type="button"
           onClick={() => setActiveTab('reference')}
-          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-none ${
+          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-sans transition-colors ${
             activeTab === 'reference'
-              ? 'bg-[var(--paper-raised)] text-[var(--ink)] border-b-2 border-[var(--ink)]'
-              : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+              ? 'bg-paper-raised text-ink font-semibold border-b-2 border-ink'
+              : 'text-ink-soft hover:text-ink'
           }`}
         >
-          <Database size={13} /> Pre-computed 72-Trial Benchmark Suite
+          <Database size={13} /> Empirical Study (72 Trials)
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('live')}
-          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-none ${
+          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-sans transition-colors ${
             activeTab === 'live'
-              ? 'bg-[var(--paper-raised)] text-[var(--ink)] border-b-2 border-[var(--ink)]'
-              : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+              ? 'bg-paper-raised text-ink font-semibold border-b-2 border-ink'
+              : 'text-ink-soft hover:text-ink'
           }`}
         >
-          <BarChart3 size={13} /> Live Custom Experiment Runner
+          <BarChart3 size={13} /> Run Custom Experiment
         </button>
       </div>
 
@@ -183,77 +179,77 @@ export function BenchmarkPage() {
           {/* Reference Charts Strip */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="work-surface">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b" style={{ borderColor: 'var(--line)' }}>
-                <span className="metric-label">PSNR vs PAYLOAD SIZE (HIGHER = BETTER)</span>
-                <span className="status-stamp status-stamp-verified">EMPIRICAL DATA</span>
+              <div className="flex items-center justify-between mb-4 pb-2 border-b border-line">
+                <span className="font-sans text-xs font-semibold text-ink">Fidelity: PSNR vs Payload Size</span>
+                <span className="font-mono text-[10px] text-success font-medium">Higher is better</span>
               </div>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={REFERENCE_BENCHMARK_DATA} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-                    <XAxis dataKey="payload" stroke="var(--ink-muted)" tick={{ fontSize: 11, fontFamily: 'IBM Plex Mono' }} />
-                    <YAxis stroke="var(--ink-muted)" domain={[55, 75]} tick={{ fontSize: 11, fontFamily: 'IBM Plex Mono' }} unit="dB" />
+                    <XAxis dataKey="payload" stroke="var(--ink-muted)" tick={{ fontSize: 11, fontFamily: 'DM Sans' }} />
+                    <YAxis stroke="var(--ink-muted)" domain={[55, 75]} tick={{ fontSize: 11, fontFamily: 'DM Sans' }} unit="dB" />
                     <Tooltip
-                      contentStyle={{ background: 'var(--paper)', border: '1px solid var(--line)', fontFamily: 'IBM Plex Mono', fontSize: '11px' }}
+                      contentStyle={{ background: 'var(--paper)', border: '1px solid var(--line)', fontFamily: 'DM Sans', fontSize: '11px' }}
                     />
-                    <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'IBM Plex Mono' }} />
+                    <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'DM Sans' }} />
                     <Line type="monotone" dataKey="adaptive_psnr" name="Adaptive (Proposed)" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} />
                     <Line type="monotone" dataKey="permuted_psnr" name="Key-Permuted 1-LSB" stroke="#3b82f6" strokeWidth={1.5} dot={{ r: 3 }} />
                     <Line type="monotone" dataKey="sequential_psnr" name="Sequential 1-LSB" stroke="#e11d48" strokeWidth={1.5} strokeDasharray="3 3" dot={{ r: 3 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-              <p className="font-mono text-[10px] mt-3" style={{ color: 'var(--ink-soft)' }}>
-                Adaptive allocation achieves +2.5 to +3.3 dB higher PSNR at equal payload sizes by steering bits into high-variance textures.
+              <p className="font-sans text-xs mt-3 text-ink-soft">
+                Adaptive allocation achieves +2.5 to +3.3 dB higher PSNR by steering payload bits into textured regions.
               </p>
             </div>
 
             <div className="work-surface">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b" style={{ borderColor: 'var(--line)' }}>
-                <span className="metric-label">SSIM vs PAYLOAD SIZE (1.0 = IDENTICAL)</span>
-                <span className="status-stamp status-stamp-verified">PERCEPTUAL SIMILARITY</span>
+              <div className="flex items-center justify-between mb-4 pb-2 border-b border-line">
+                <span className="font-sans text-xs font-semibold text-ink">Perceptual Similarity: SSIM vs Payload Size</span>
+                <span className="font-mono text-[10px] text-success font-medium">1.0 = identical</span>
               </div>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={REFERENCE_BENCHMARK_DATA} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-                    <XAxis dataKey="payload" stroke="var(--ink-muted)" tick={{ fontSize: 11, fontFamily: 'IBM Plex Mono' }} />
-                    <YAxis stroke="var(--ink-muted)" domain={[0.998, 1.000]} tick={{ fontSize: 11, fontFamily: 'IBM Plex Mono' }} />
+                    <XAxis dataKey="payload" stroke="var(--ink-muted)" tick={{ fontSize: 11, fontFamily: 'DM Sans' }} />
+                    <YAxis stroke="var(--ink-muted)" domain={[0.998, 1.000]} tick={{ fontSize: 11, fontFamily: 'DM Sans' }} />
                     <Tooltip
-                      contentStyle={{ background: 'var(--paper)', border: '1px solid var(--line)', fontFamily: 'IBM Plex Mono', fontSize: '11px' }}
+                      contentStyle={{ background: 'var(--paper)', border: '1px solid var(--line)', fontFamily: 'DM Sans', fontSize: '11px' }}
                     />
-                    <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'IBM Plex Mono' }} />
+                    <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'DM Sans' }} />
                     <Line type="monotone" dataKey="adaptive_ssim" name="Adaptive (Proposed)" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} />
                     <Line type="monotone" dataKey="permuted_ssim" name="Key-Permuted 1-LSB" stroke="#3b82f6" strokeWidth={1.5} dot={{ r: 3 }} />
                     <Line type="monotone" dataKey="sequential_ssim" name="Sequential 1-LSB" stroke="#e11d48" strokeWidth={1.5} strokeDasharray="3 3" dot={{ r: 3 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-              <p className="font-mono text-[10px] mt-3" style={{ color: 'var(--ink-soft)' }}>
-                SSIM remains consistently &gt; 0.999 across all tested payloads, exceeding standard imperceptibility thresholds.
+              <p className="font-sans text-xs mt-3 text-ink-soft">
+                SSIM remains consistently above 0.999 across all tested payloads, exceeding standard imperceptibility thresholds.
               </p>
             </div>
           </div>
 
-          {/* Theoretical Summary Box */}
+          {/* Summary Box */}
           <div className="work-surface">
-            <div className="metric-label mb-2">BENCHMARK HARNESS SPECIFICATION</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
-              <div className="p-3 border" style={{ borderColor: 'var(--line)' }}>
-                <div style={{ color: 'var(--ink-soft)' }}>DATASET SIZE</div>
-                <div className="text-sm font-semibold mt-1">6 Diverse 512×512 Images</div>
+            <h3 className="font-sans font-semibold text-sm text-ink mb-3">Study Summary</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-sans">
+              <div className="p-3 border border-line bg-paper">
+                <div className="text-ink-muted">DATASET</div>
+                <div className="text-sm font-semibold mt-1 text-ink">6 Diverse Images</div>
               </div>
-              <div className="p-3 border" style={{ borderColor: 'var(--line)' }}>
-                <div style={{ color: 'var(--ink-soft)' }}>TOTAL TRIALS</div>
-                <div className="text-sm font-semibold mt-1">72 Unique Executions</div>
+              <div className="p-3 border border-line bg-paper">
+                <div className="text-ink-muted">TOTAL TRIALS</div>
+                <div className="text-sm font-semibold mt-1 text-ink">72 Runs</div>
               </div>
-              <div className="p-3 border" style={{ borderColor: 'var(--line)' }}>
-                <div style={{ color: 'var(--ink-soft)' }}>ROUND-TRIP RATE</div>
-                <div className="text-sm font-semibold mt-1 text-[var(--success)]">100.0% (72/72)</div>
+              <div className="p-3 border border-line bg-paper">
+                <div className="text-ink-muted">ROUND-TRIP INTEGRITY</div>
+                <div className="text-sm font-semibold mt-1 text-success">100% (72/72)</div>
               </div>
-              <div className="p-3 border" style={{ borderColor: 'var(--line)' }}>
-                <div style={{ color: 'var(--ink-soft)' }}>AUTHENTICATION</div>
-                <div className="text-sm font-semibold mt-1 text-[var(--success)]">AES-GCM + SHA-256 OK</div>
+              <div className="p-3 border border-line bg-paper">
+                <div className="text-ink-muted">AUTHENTICATION</div>
+                <div className="text-sm font-semibold mt-1 text-success">Verified</div>
               </div>
             </div>
           </div>
@@ -263,39 +259,30 @@ export function BenchmarkPage() {
           {/* Controls */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
             <div className="work-surface md:col-span-1">
-              <div className="metric-label mb-3">CARRIER SELECTION</div>
-              <ImageDropzone onFile={(f) => { setCoverFile(f); setResults(null); }} label="Upload or select carrier" currentFile={coverFile} />
-              <div className="mt-3 flex flex-wrap gap-1">
-                <span className="text-[10px] font-mono mr-1" style={{ color: 'var(--ink-muted)' }}>PRESETS:</span>
+              <div className="font-sans text-xs font-semibold text-ink mb-2">Test Image</div>
+              <ImageDropzone onFile={(f) => { setCoverFile(f); setResults(null); }} label="Upload or select image" currentFile={coverFile} />
+              <div className="mt-3 flex items-center gap-1.5 text-xs">
+                <span className="text-ink-muted">Sample:</span>
                 <button
                   type="button"
                   onClick={() => loadSyntheticCarrier('texture')}
-                  className="px-2 py-1 text-[10px] font-mono border hover:bg-[var(--paper-raised)]"
-                  style={{ borderColor: 'var(--line)' }}
+                  className="font-sans text-[11px] text-ink-soft hover:text-ink underline"
                 >
                   Texture
                 </button>
+                <span className="text-line">·</span>
                 <button
                   type="button"
                   onClick={() => loadSyntheticCarrier('gradient')}
-                  className="px-2 py-1 text-[10px] font-mono border hover:bg-[var(--paper-raised)]"
-                  style={{ borderColor: 'var(--line)' }}
+                  className="font-sans text-[11px] text-ink-soft hover:text-ink underline"
                 >
                   Gradient
-                </button>
-                <button
-                  type="button"
-                  onClick={() => loadSyntheticCarrier('edge')}
-                  className="px-2 py-1 text-[10px] font-mono border hover:bg-[var(--paper-raised)]"
-                  style={{ borderColor: 'var(--line)' }}
-                >
-                  Linear Edges
                 </button>
               </div>
             </div>
 
             <div className="work-surface">
-              <div className="metric-label mb-3">PAYLOAD SIZES</div>
+              <div className="font-sans text-xs font-semibold text-ink mb-2">Payload Sizes</div>
               <div className="flex flex-wrap gap-2">
                 {PAYLOAD_SIZES.map(size => (
                   <button
@@ -303,7 +290,7 @@ export function BenchmarkPage() {
                     type="button"
                     onClick={() => toggleSize(size)}
                     className={selectedSizes.includes(size) ? 'btn-primary' : 'btn-secondary'}
-                    style={{ padding: '5px 12px', fontSize: '11px' }}
+                    style={{ padding: '4px 10px', fontSize: '11px' }}
                   >
                     {size >= 1024 ? `${size / 1024} KB` : `${size} B`}
                   </button>
@@ -312,7 +299,7 @@ export function BenchmarkPage() {
             </div>
 
             <div className="work-surface">
-              <div className="metric-label mb-3">COMPARISON ALGORITHMS</div>
+              <div className="font-sans text-xs font-semibold text-ink mb-2">Methods to Compare</div>
               <div className="flex flex-col gap-2">
                 {METHODS.map(method => (
                   <button
@@ -320,9 +307,9 @@ export function BenchmarkPage() {
                     type="button"
                     onClick={() => toggleMethod(method)}
                     className={`${selectedMethods.includes(method) ? 'btn-primary' : 'btn-secondary'} justify-start`}
-                    style={{ padding: '6px 12px', fontSize: '12px', textTransform: 'capitalize' }}
+                    style={{ padding: '6px 12px', fontSize: '12px' }}
                   >
-                    {method === 'adaptive' ? 'Adaptive (Proposed Composite)' : method === 'sequential' ? 'Sequential 1-LSB Baseline' : 'Key-Permuted 1-LSB Baseline'}
+                    {method === 'adaptive' ? 'Adaptive (Proposed)' : method === 'sequential' ? 'Sequential 1-LSB' : 'Key-Permuted 1-LSB'}
                   </button>
                 ))}
               </div>
@@ -333,37 +320,32 @@ export function BenchmarkPage() {
             <button
               type="button"
               onClick={runBenchmark}
-              className="btn-signal"
+              className="btn-signal text-xs py-2.5 px-5 flex items-center gap-1.5"
               disabled={!coverFile || loading || selectedSizes.length === 0 || selectedMethods.length === 0}
             >
-              {loading ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-              {loading ? 'Executing Live Benchmark Trials…' : 'Execute Live Benchmark'}
+              {loading ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+              <span>{loading ? 'Running experiments...' : 'Execute Benchmark'}</span>
             </button>
-            {loading && (
-              <span className="font-mono text-xs" style={{ color: 'var(--ink-soft)' }}>
-                Encoding, embedding, measuring PSNR/SSIM, and extracting payload for each combination...
-              </span>
-            )}
           </div>
 
-          {error && <div className="font-sans text-sm mb-5 p-3 border" style={{ borderColor: 'var(--signal)', color: 'var(--signal)' }}>{error}</div>}
+          {error && <div className="font-sans text-xs mb-5 p-3 border border-signal text-signal bg-signal-soft rounded">{error}</div>}
 
-          {/* Results Table & Charts */}
+          {/* Results Table */}
           {results && (
             <div className="space-y-6">
               {liveChartData && (
                 <div className="work-surface">
-                  <div className="metric-label mb-3">LIVE TRIAL PSNR COMPARISON</div>
+                  <div className="font-sans text-xs font-semibold text-ink mb-3">Live Trial PSNR Comparison</div>
                   <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={liveChartData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-                        <XAxis dataKey="payload" stroke="var(--ink-muted)" tick={{ fontSize: 11, fontFamily: 'IBM Plex Mono' }} />
-                        <YAxis stroke="var(--ink-muted)" tick={{ fontSize: 11, fontFamily: 'IBM Plex Mono' }} unit="dB" />
+                        <XAxis dataKey="payload" stroke="var(--ink-muted)" tick={{ fontSize: 11, fontFamily: 'DM Sans' }} />
+                        <YAxis stroke="var(--ink-muted)" tick={{ fontSize: 11, fontFamily: 'DM Sans' }} unit="dB" />
                         <Tooltip
-                          contentStyle={{ background: 'var(--paper)', border: '1px solid var(--line)', fontFamily: 'IBM Plex Mono', fontSize: '11px' }}
+                          contentStyle={{ background: 'var(--paper)', border: '1px solid var(--line)', fontFamily: 'DM Sans', fontSize: '11px' }}
                         />
-                        <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'IBM Plex Mono' }} />
+                        <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'DM Sans' }} />
                         {selectedMethods.includes('adaptive') && (
                           <Line type="monotone" dataKey="adaptive_psnr" name="Adaptive (dB)" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} />
                         )}
@@ -380,46 +362,40 @@ export function BenchmarkPage() {
               )}
 
               <div className="flex items-center justify-between">
-                <div className="font-mono text-xs font-semibold">{results.length} EXECUTIONS COMPLETED</div>
+                <div className="font-sans text-xs font-medium text-ink">{results.length} trials completed</div>
                 <div className="flex gap-2">
                   <button type="button" onClick={exportCSV} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '11px' }}>
-                    <Download size={11} /> Export CSV
+                    <Download size={11} /> CSV
                   </button>
                   <button type="button" onClick={exportJSON} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '11px' }}>
-                    <Download size={11} /> Export JSON
+                    <Download size={11} /> JSON
                   </button>
                 </div>
               </div>
 
-              <div className="border" style={{ overflowX: 'auto', borderColor: 'var(--line)' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'IBM Plex Mono', fontSize: '11px' }}>
+              <div className="border border-line rounded overflow-x-auto">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: '12px' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--line)', background: 'var(--paper-raised)' }}>
-                      {['Method', 'Payload', 'MSE', 'PSNR', 'SSIM', 'Δ Entropy', 'Changed %', 'Encode Time', 'Decode Time', 'Round-trip', 'Status'].map(h => (
-                        <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--ink-soft)', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
+                      {['Method', 'Payload', 'PSNR', 'SSIM', 'Changed %', 'Encode Time', 'Decode Time', 'Integrity'].map(h => (
+                        <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--ink-soft)', fontWeight: 600 }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {results.map((r, i) => (
                       <tr key={i} style={{ borderBottom: '1px solid var(--line)', background: i % 2 === 0 ? 'var(--paper)' : 'var(--paper-raised)' }}>
-                        <td style={{ padding: '8px 10px', color: 'var(--ink)', fontWeight: 500 }}>{r.method}</td>
-                        <td style={{ padding: '8px 10px', color: 'var(--ink)' }}>{r.payload_bytes >= 1024 ? `${r.payload_bytes / 1024} KB` : `${r.payload_bytes} B`}</td>
-                        <td style={{ padding: '8px 10px' }}>{r.mse != null ? r.mse.toFixed(4) : '—'}</td>
-                        <td style={{ padding: '8px 10px', fontWeight: 600, color: r.psnr && r.psnr > 60 ? 'var(--success)' : 'inherit' }}>
+                        <td style={{ padding: '8px 12px', color: 'var(--ink)', fontWeight: 500 }}>{r.method}</td>
+                        <td style={{ padding: '8px 12px', color: 'var(--ink)' }}>{r.payload_bytes >= 1024 ? `${r.payload_bytes / 1024} KB` : `${r.payload_bytes} B`}</td>
+                        <td style={{ padding: '8px 12px', fontWeight: 600, color: r.psnr && r.psnr > 60 ? 'var(--success)' : 'inherit' }}>
                           {r.psnr != null ? `${r.psnr.toFixed(2)} dB` : '∞'}
                         </td>
-                        <td style={{ padding: '8px 10px' }}>{r.ssim != null ? r.ssim.toFixed(5) : '—'}</td>
-                        <td style={{ padding: '8px 10px' }}>{r.entropy_difference != null ? r.entropy_difference.toFixed(5) : '—'}</td>
-                        <td style={{ padding: '8px 10px' }}>{r.changed_pixels_ratio != null ? (r.changed_pixels_ratio * 100).toFixed(2) + '%' : '—'}</td>
-                        <td style={{ padding: '8px 10px' }}>{r.encode_time != null ? `${r.encode_time.toFixed(3)}s` : '—'}</td>
-                        <td style={{ padding: '8px 10px' }}>{r.decode_time != null ? `${r.decode_time.toFixed(3)}s` : '—'}</td>
-                        <td style={{ padding: '8px 10px', color: r.round_trip_ok ? 'var(--success)' : 'var(--signal)', fontWeight: 'bold' }}>
+                        <td style={{ padding: '8px 12px' }}>{r.ssim != null ? r.ssim.toFixed(4) : '—'}</td>
+                        <td style={{ padding: '8px 12px' }}>{r.changed_pixels_ratio != null ? (r.changed_pixels_ratio * 100).toFixed(2) + '%' : '—'}</td>
+                        <td style={{ padding: '8px 12px' }}>{r.encode_time != null ? `${r.encode_time.toFixed(3)}s` : '—'}</td>
+                        <td style={{ padding: '8px 12px' }}>{r.decode_time != null ? `${r.decode_time.toFixed(3)}s` : '—'}</td>
+                        <td style={{ padding: '8px 12px', color: r.round_trip_ok ? 'var(--success)' : 'var(--signal)', fontWeight: 'bold' }}>
                           {r.round_trip_ok === undefined ? '—' : r.round_trip_ok ? '✓ PASS' : '✗ FAIL'}
-                        </td>
-                        <td style={{ padding: '8px 10px', color: r.status === 'success' ? 'var(--success)' : 'var(--signal)' }}>
-                          {r.status}
-                          {r.error && <div style={{ color: 'var(--signal)', fontSize: '9px' }}>{r.error.slice(0, 50)}</div>}
                         </td>
                       </tr>
                     ))}

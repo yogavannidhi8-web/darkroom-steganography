@@ -1,15 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Menu, X, Shield, Activity } from 'lucide-react';
+import { Menu, X, Shield } from 'lucide-react';
 import { api } from '../../services/api';
 
 const navLinks = [
-  { to: '/', label: 'Overview', code: '01' },
-  { to: '/encode', label: 'Encode', code: '02' },
-  { to: '/decode', label: 'Decode & Verify', code: '03' },
-  { to: '/analysis', label: 'Analysis', code: '04' },
-  { to: '/benchmark', label: 'Benchmark', code: '05' },
-  { to: '/methodology', label: 'Methodology', code: '06' },
+  { to: '/', label: 'Overview' },
+  { to: '/encode', label: 'Encode' },
+  { to: '/decode', label: 'Decode' },
+  { to: '/analysis', label: 'Analysis' },
+  { to: '/benchmark', label: 'Benchmark' },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -28,7 +27,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       }
     };
     checkHealth();
-    const interval = setInterval(checkHealth, 20000);
+    const interval = setInterval(checkHealth, 30000);
     return () => {
       mounted = false;
       clearInterval(interval);
@@ -37,17 +36,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--paper)' }}>
-      {/* Precision Top Bar */}
+      {/* Calm Status Bar */}
       <div
-        className="border-b text-[10px] font-mono tracking-widest uppercase px-4 md:px-6 py-1 flex items-center justify-between"
+        className="border-b text-[11px] font-sans px-4 md:px-8 py-1.5 flex items-center justify-between"
         style={{ borderColor: 'var(--line)', background: 'var(--paper-raised)', color: 'var(--ink-muted)' }}
       >
-        <div className="flex items-center gap-4">
-          <span>SYS: DARKROOM / LAB 1.0</span>
-          <span className="hidden sm:inline">·</span>
-          <span className="hidden sm:inline">ALGO: ADAPTIVE 6-BIT SPATIAL</span>
-          <span className="hidden md:inline">·</span>
-          <span className="hidden md:inline">CRYPTO: AES-256-GCM / ARGON2ID</span>
+        <div className="font-sans text-xs tracking-normal text-ink-soft">
+          Secure Adaptive Image Steganography
         </div>
         <div className="flex items-center gap-2">
           <span
@@ -56,8 +51,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               background: backendOnline === true ? 'var(--success)' : backendOnline === false ? 'var(--signal)' : 'var(--warning)',
             }}
           />
-          <span style={{ color: backendOnline === true ? 'var(--success)' : 'var(--ink-muted)' }}>
-            {backendOnline === true ? 'ENGINE ONLINE' : backendOnline === false ? 'ENGINE OFFLINE' : 'CONNECTING...'}
+          <span className="font-mono text-[10px]" style={{ color: backendOnline === true ? 'var(--ink-soft)' : 'var(--signal)' }}>
+            {backendOnline === true ? 'Ready' : backendOnline === false ? 'Offline' : 'Connecting...'}
           </span>
         </div>
       </div>
@@ -65,29 +60,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Main Navigation Header */}
       <header
         className="sticky top-0 z-50 border-b backdrop-blur-sm"
-        style={{ borderColor: 'var(--line)', background: 'rgba(242, 240, 232, 0.95)' }}
+        style={{ borderColor: 'var(--line)', background: 'rgba(242, 240, 232, 0.96)' }}
       >
-        <div className="max-w-screen-xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
+        <div className="max-w-screen-xl mx-auto px-4 md:px-8 h-14 flex items-center justify-between">
           {/* Identity */}
           <Link to="/" className="flex items-center gap-2.5 group" aria-label="DARKROOM home">
             <div
-              className="w-6 h-6 flex items-center justify-center border transition-colors group-hover:border-signal"
+              className="w-7 h-7 flex items-center justify-center border transition-colors group-hover:border-signal"
               style={{ borderColor: 'var(--ink)', borderRadius: 'var(--radius-xs)', background: 'var(--paper-raised)' }}
             >
-              <Shield size={12} strokeWidth={2} style={{ color: 'var(--ink)' }} />
+              <Shield size={13} strokeWidth={2} style={{ color: 'var(--ink)' }} />
             </div>
             <div className="flex flex-col">
-              <div className="flex items-center gap-1.5 leading-none">
-                <span className="font-mono text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--ink)' }}>
-                  DARKROOM
-                </span>
-                <span className="font-mono text-xs text-ink-muted">/</span>
-                <span className="font-mono text-xs tracking-wider uppercase text-ink-soft hidden sm:inline">
-                  IMAGE SECURITY LAB
-                </span>
-              </div>
-              <span className="text-[9px] font-mono tracking-wider text-ink-muted uppercase mt-0.5">
-                Adaptive Steganography Workstation
+              <span className="font-mono text-xs font-semibold tracking-wider uppercase text-ink">
+                DARKROOM
+              </span>
+              <span className="text-[10px] font-sans text-ink-muted">
+                Image Steganography Workstation
               </span>
             </div>
           </Link>
@@ -100,18 +89,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   key={link.to}
                   to={link.to}
-                  className="px-3.5 py-1.5 font-sans text-xs tracking-wide transition-all relative flex items-center gap-1.5"
+                  className="px-4 py-2 font-sans text-xs tracking-wide transition-colors relative"
                   style={{
                     color: active ? 'var(--ink)' : 'var(--ink-soft)',
                     fontWeight: active ? 600 : 400,
                   }}
                   aria-current={active ? 'page' : undefined}
                 >
-                  <span className="font-mono text-[10px] text-ink-muted">{link.code}</span>
                   <span>{link.label}</span>
                   {active && (
                     <span
-                      className="absolute bottom-[-13px] left-3.5 right-3.5 h-[2px]"
+                      className="absolute bottom-[-11px] left-4 right-4 h-[2px]"
                       style={{ background: 'var(--ink)' }}
                     />
                   )}
@@ -119,14 +107,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
-
-          {/* Action indicator */}
-          <div className="hidden lg:flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 border text-xs font-mono" style={{ borderColor: 'var(--line)', background: 'var(--paper-raised)', borderRadius: 'var(--radius-xs)' }}>
-              <Activity size={11} style={{ color: 'var(--signal)' }} />
-              <span className="text-[10px] text-ink-soft uppercase tracking-wider">PORT 8000 · REST</span>
-            </div>
-          </div>
 
           {/* Mobile menu toggle */}
           <button
@@ -162,32 +142,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     aria-current={active ? 'page' : undefined}
                   >
                     <span>{link.label}</span>
-                    <span className="font-mono text-xs text-ink-muted">{link.code}</span>
                   </Link>
                 );
               })}
+              <Link
+                to="/methodology"
+                onClick={() => setMobileOpen(false)}
+                className="py-3 font-sans text-sm text-ink-muted"
+              >
+                Technical Methodology
+              </Link>
             </div>
           </nav>
         )}
       </header>
 
       {/* Main Work Surface */}
-      <main className="flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-6 py-8 md:py-10">
+      <main className="flex-1 max-w-screen-xl mx-auto w-full px-4 md:px-8 py-8 md:py-10">
         {children}
       </main>
 
-      {/* Technical Footer */}
+      {/* Quiet, Professional Footer */}
       <footer className="border-t mt-auto" style={{ borderColor: 'var(--line)', background: 'var(--paper-raised)' }}>
-        <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono" style={{ color: 'var(--ink-muted)' }}>
+        <div className="max-w-screen-xl mx-auto px-4 md:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-sans text-ink-soft">
           <div>
-            DARKROOM / Image Security Lab · Academic Capstone Specification
+            Secure Adaptive Image Steganography System
           </div>
-          <div className="flex items-center gap-4">
-            <span>SHA-256 INTEGRITY</span>
+          <div className="flex items-center gap-4 text-xs font-sans">
+            <Link to="/" className="text-ink-soft hover:text-ink">Overview</Link>
             <span>·</span>
-            <span>CHACHA20 SHUFFLE</span>
+            <Link to="/encode" className="text-ink-soft hover:text-ink">Encode</Link>
             <span>·</span>
-            <span>SSIM &gt; 0.999</span>
+            <Link to="/decode" className="text-ink-soft hover:text-ink">Decode</Link>
+            <span>·</span>
+            <Link to="/analysis" className="text-ink-soft hover:text-ink">Analysis</Link>
+            <span>·</span>
+            <Link to="/benchmark" className="text-ink-soft hover:text-ink">Benchmark</Link>
+            <span>·</span>
+            <Link to="/methodology" className="text-ink-soft hover:text-ink">Methodology</Link>
           </div>
         </div>
       </footer>
