@@ -2,7 +2,7 @@ services:
   # Backend FastAPI Web Service
   - type: web
     name: darkroom-backend
-    env: python
+    runtime: python
     region: oregon
     plan: free
     rootDir: backend
@@ -19,11 +19,10 @@ services:
       - key: MAX_IMAGE_PIXELS
         value: "8000000"
 
-  # Frontend Vite Static Site (Global CDN - no region)
+  # Frontend Vite Static Site
   - type: web
     name: darkroom-frontend
-    env: static
-    plan: free
+    runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
