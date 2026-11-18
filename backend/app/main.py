@@ -2,10 +2,12 @@
 DARKROOM / IMAGE SECURITY LAB
 FastAPI backend application entry point.
 """
+import os
 import logging
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.api import health, capacity, encode, decode, analysis, benchmark
@@ -76,12 +78,33 @@ app.include_router(decode.router, prefix="/api/v1")
 app.include_router(analysis.router, prefix="/api/v1")
 app.include_router(benchmark.router, prefix="/api/v1")
 
-@app.get("/")
-async def root():
-    return {
-        "name": "DARKROOM / Image Security Lab API",
-        "version": settings.version,
-        "environment": settings.app_env,
-        "docs": "/api/docs",
-        "health": "/api/v1/health",
-    }
+# Static files and SPA serving (unified production deployment)
+dist_dirs = [
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static")),
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")),
+]
+static_dir = next((d for d in dist_dirs if os.path.isdir(d)), None)
+
+if static_dir and os.path.isfile(os.path.join(static_dir, "index.html")):
+    assets_dir = os.path.join(static_dir, "assets")
+    if os.path.isdir(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(request: Request, full_path: str):
+        if full_path.startswith("api") or full_path == "docs" or full_path == "openapi.json":
+            return JSONResponse(status_code=404, content={"detail": "Not Found"})
+        target = os.path.join(static_dir, full_path)
+        if full_path and os.path.isfile(target):
+            return FileResponse(target)
+        return FileResponse(os.path.join(static_dir, "index.html"))
+else:
+    @app.get("/")
+    async def root():
+        return {
+            "name": "DARKROOM / Image Security Lab API",
+            "version": settings.version,
+            "environment": settings.app_env,
+            "docs": "/api/docs",
+            "health": "/api/v1/health",
+        }

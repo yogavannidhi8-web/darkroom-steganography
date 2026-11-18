@@ -1,39 +1,17 @@
 services:
-  # Backend FastAPI Web Service
   - type: web
-    name: darkroom-backend
-    runtime: python
+    name: darkroom-steganography
+    env: docker
     region: oregon
     plan: free
-    rootDir: backend
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    dockerfilePath: Dockerfile
     healthCheckPath: /api/v1/health
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.8
       - key: APP_ENV
         value: production
       - key: ALLOWED_ORIGINS
-        value: https://darkroom-frontend.onrender.com,http://localhost:5173,http://localhost:3000
+        value: "*"
       - key: MAX_UPLOAD_MB
         value: "20"
       - key: MAX_IMAGE_PIXELS
         value: "8000000"
-
-  # Frontend Vite Static Site
-  - type: web
-    name: darkroom-frontend
-    runtime: static
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: NODE_VERSION
-        value: 20.18.0
-      - key: VITE_API_BASE_URL
-        value: https://darkroom-backend.onrender.com
